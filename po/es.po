@@ -424,3 +424,7 @@ msgstr "Centro de software"
 #~ msgstr ""
 #~ "Desinstalándolo significa que el software adicional a continuación necesita "
 #~ "ser removido."
+
+msgid "Ceibal Highlights"
+msgstr "Destacados de Ceibal"
+

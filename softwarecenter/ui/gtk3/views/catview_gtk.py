@@ -24,6 +24,8 @@ import logging
 import os
 import webbrowser
 import xapian
+import urllib2
+import json
 
 from gettext import gettext as _
 
@@ -456,17 +458,36 @@ class LobbyViewGtk(CategoriesViewGtk):
             self.whats_new_frame.header_implements_more_button()
             self.whats_new_frame.more.connect(
                 'clicked', self.on_category_clicked, whats_new_cat)
+    
+    def _ceibal_get_docs(self):
+        """ return the database docids for the given category """
+        enq = AppEnquire(self.db._aptcache, self.db)
+        app_filter = AppFilter(self.db, self.db._aptcache)
+        
+        app_filter.set_available_only(True)
+        #app_filter.set_not_installed_only(True)
+        p = "http://apt.ceibal.edu.uy/recommendations/list.json"
+        data = json.load(urllib2.urlopen(p))
+        query = get_query_for_pkgnames(data['packages']) 
+        enq.set_query(query,
+                      limit=20,
+                      filter=app_filter,
+                      sortmode=0,
+                      nonapps_visible=NonAppVisibility.ALWAYS_VISIBLE,
+                      nonblocking_load=False)
+        return enq.get_documents()
+
 
     def _update_ceibal_apps_content(self):
         # remove any existing children from the grid widget
         LOG.debug("Adding Ceibal highlights pkgs to pane")
         self.ceibal_apps.remove_all()
-        ceibal_apps_cat = get_category_by_name(self.categories, u"CeibalHighlights")
-        if ceibal_apps_cat:
-            docs = ceibal_apps_cat.get_documents(self.db)
-            self._add_tiles_to_flowgrid(docs, self.ceibal_apps, 8)
-            self.ceibal_apps.show_all()
-        return ceibal_apps_cat
+        docs = self._ceibal_get_docs()
+        self._add_tiles_to_flowgrid(docs, self.ceibal_apps, 8)
+        self.ceibal_apps.show_all()
+        ceibal_cat = get_category_by_name(self.categories, 
+                    u"CeibalHighlights")  # untranslated name
+        return ceibal_cat 
 
     def _append_ceibal_apps(self):
         self.ceibal_apps = FlowableGrid()
@@ -474,13 +495,13 @@ class LobbyViewGtk(CategoriesViewGtk):
         self.ceibal_apps_frame.set_header_label(_(u"Ceibal Highlights"))
         self.ceibal_apps_frame.add(self.ceibal_apps)
 
-        ceibal_apps_cat = self._update_ceibal_apps_content()
-        if ceibal_apps_cat is not None:
+        cat = self._update_ceibal_apps_content()
+        if cat is not None:
             # only add to the visible right_frame if we actually have it
             self.right_column.pack_start(self.ceibal_apps_frame, True, True, 0)
             self.ceibal_apps_frame.header_implements_more_button()
             self.ceibal_apps_frame.more.connect(
-                'clicked', self.on_category_clicked, ceibal_apps_cat)
+                'clicked', self.on_category_clicked, cat)
 
     def _update_recommended_for_you_content(self):
         if (self.recommended_for_you_panel and

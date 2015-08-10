@@ -77,10 +77,6 @@ from softwarecenter.region import (
     REGION_WHITELIST_TAG,
     )
 
-import apt
-import softwarecenter.plugin
-import urllib2
-from softwarecenter.paths import XAPIAN_BASE_PATH
 
 
 
@@ -567,14 +563,6 @@ def update(db, cache, datadir=None):
         datadir = softwarecenter.paths.APP_INSTALL_DESKTOP_PATH
     update_from_app_install_data(db, cache, datadir)
     update_from_var_lib_apt_lists(db, cache)
-    pathname = os.path.join(XAPIAN_BASE_PATH,'xapian')
-    try:
-        p = "http://apt.ceibal.edu.uy/recommendations/list.json"
-        data = urllib2.urlopen(p)
-        update_from_json_string(db, cache, data.read(), origin=p)
-    except xapian.DatabaseLockError:
-        LOG.error("Another instance of the update agent already holds "
-                     "a write lock on %s" % p)
     # add db global meta-data
     LOG.debug("adding popcon_max_desktop '%s'" % popcon_max)
     db.set_metadata("popcon_max_desktop",
